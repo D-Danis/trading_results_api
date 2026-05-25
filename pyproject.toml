@@ -14,6 +14,19 @@ dependencies = [
     "python-dotenv>=1.0.1",
 ]
 
+[dependency-groups]
+dev = [
+    "ruff>=0.5.0",
+]
+test = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-dotenv>=0.5.0",
+    "httpx>=0.27.0",
+    "fakeredis[lua]>=2.24",
+    "aiosqlite>=0.19",
+]
+
 [tool.ruff]
 line-length = 120
 target-version = "py312"

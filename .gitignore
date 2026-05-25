@@ -10,3 +10,11 @@ wheels/
 .venv
 
 *.env
+.env.test
+tests/
+.ruff_cache/
+
+# docker
+.dockerignore
+DockerFile
+docker-compose.yml
