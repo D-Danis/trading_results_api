@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.9.0",
     "redis[hiredis]>=5.1.0",
     "python-dotenv>=1.0.1",
+    "pydantic-settings>=2.14.1",
 ]
 
 [dependency-groups]
