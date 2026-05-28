@@ -2,11 +2,9 @@ from datetime import date
 from typing import Callable, Awaitable
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache import RedisCache, get_ttl_to_target
-from app.database import get_session
-from app.dependencies import get_cache, trading_filter
+from app.dependencies import get_cache, trading_filter, get_repo
 from app.repository.trading import TradingRepository
 from app.schemas import LastTradingDatesList, TradingResultList, TradingResultOut, TradingFilter, T
 
@@ -32,7 +30,7 @@ async def get_cached_or_fetch(
 @router.get("/last_trading_dates", response_model=LastTradingDatesList)
 async def last_trading_dates(
     limit: int = Query(..., description="Количество последних торговых дней", ge=1, le=365),
-    session: AsyncSession = Depends(get_session),
+    repo: TradingRepository = Depends(get_repo),
     cache: RedisCache = Depends(get_cache),
 ) -> LastTradingDatesList:
     """Возвращает список дат последних торговых дней."""
@@ -42,7 +40,7 @@ async def last_trading_dates(
         return LastTradingDatesList.model_validate_json(cached)
     
     async def _fetch():
-        dates = await TradingRepository.get_last_trading_dates(session, limit)
+        dates = await repo.get_last_trading_dates(limit)
         return LastTradingDatesList(dates=dates)
 
     return await get_cached_or_fetch(cache, cache_key, _fetch, LastTradingDatesList)
@@ -55,7 +53,7 @@ async def dynamics(
     filter: TradingFilter = Depends(trading_filter),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    session: AsyncSession = Depends(get_session),
+    repo: TradingRepository = Depends(get_repo),
     cache: RedisCache = Depends(get_cache),
 ) -> TradingResultList:
     """Возвращает торги за заданный период с возможной фильтрацией."""
@@ -70,8 +68,8 @@ async def dynamics(
         return TradingResultList.model_validate_json(cached)
 
     async def _fetch():
-        items, total = await TradingRepository.get_dynamics(
-            session, start_date, end_date, filter, limit, offset)
+        items, total = await repo.get_dynamics(
+            start_date, end_date, filter, limit, offset)
         return TradingResultList(
             items=[TradingResultOut.model_validate(item) for item in items],
             total=total,
@@ -84,7 +82,7 @@ async def trading_results(
     filter: TradingFilter = Depends(trading_filter),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    session: AsyncSession = Depends(get_session),
+    repo: TradingRepository = Depends(get_repo),
     cache: RedisCache = Depends(get_cache),
 ):
     """Возвращает последние торги с фильтрацией (все параметры опциональны)."""
@@ -97,7 +95,7 @@ async def trading_results(
         return TradingResultList.model_validate_json(cached)
 
     async def _fetch():
-        items, total = await TradingRepository.get_trading_results(session, filter, limit, offset)
+        items, total = await repo.get_trading_results(filter, limit, offset)
         return TradingResultList(
             items=[TradingResultOut.model_validate(item) for item in items],
             total=total,
