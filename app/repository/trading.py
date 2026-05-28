@@ -10,11 +10,10 @@ from app.schemas import TradingFilter
 class TradingRepository:
     """Репозиторий для работы с результатами торгов SPIMEX."""
 
-    @staticmethod
-    async def get_last_trading_dates(
-        session: AsyncSession,
-        limit: int,
-    ) -> list[date]:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+    
+    async def get_last_trading_dates(self, limit: int) -> list[date]:
         """Возвращает список последних `limit` уникальных дат торгов."""
         stmt = (
             select(SpimexTradingResult.date)
@@ -22,12 +21,12 @@ class TradingRepository:
             .order_by(SpimexTradingResult.date.desc())
             .limit(limit)
         )
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         return [row[0] for row in result.all()]
 
-    @staticmethod
+    
     async def get_dynamics(
-        session: AsyncSession,
+        self,
         start_date: date,
         end_date: date,
         filter: TradingFilter | None = None,
@@ -50,7 +49,7 @@ class TradingRepository:
         where_clause = and_(*conditions)
 
         count_stmt = select(func.count()).where(where_clause)
-        total = (await session.execute(count_stmt)).scalar_one()
+        total = (await self.session.execute(count_stmt)).scalar_one()
 
         stmt = (
             select(SpimexTradingResult)
@@ -59,13 +58,13 @@ class TradingRepository:
             .limit(limit)
             .offset(offset)
         )
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         items = result.scalars().all()
         return items, total
 
-    @staticmethod
+    
     async def get_trading_results(
-        session: AsyncSession,
+        self,
         filter: TradingFilter | None = None,
         limit: int = 100,
         offset: int = 0,
@@ -86,7 +85,7 @@ class TradingRepository:
             where_clause = True
 
         count_stmt = select(func.count()).where(where_clause)
-        total = (await session.execute(count_stmt)).scalar_one()
+        total = (await self.session.execute(count_stmt)).scalar_one()
 
         stmt = (
             select(SpimexTradingResult)
@@ -95,6 +94,6 @@ class TradingRepository:
             .limit(limit)
             .offset(offset)
         )
-        result = await session.execute(stmt)
+        result = await self.session.execute(stmt)
         items = result.scalars().all()
         return items, total
