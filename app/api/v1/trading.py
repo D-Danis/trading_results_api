@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache import RedisCache, get_cache
@@ -42,7 +42,7 @@ async def dynamics(
 ):
     """Возвращает торги за заданный период с возможной фильтрацией."""
     if start_date > end_date:
-        raise HTTPException(status_code=400, detail="start_date не может быть позже end_date")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="start_date не может быть позже end_date")
 
     # Ключ кэша на основе параметров
     cache_key = f"dynamics:{start_date}:{end_date}:{oil_id}:{delivery_type_id}:{delivery_basis_id}:{limit}:{offset}"
