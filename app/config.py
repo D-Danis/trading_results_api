@@ -1,15 +1,38 @@
-import os
+from pydantic import PostgresDsn, RedisDsn
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from dotenv import load_dotenv
 
-load_dotenv()
+class Settings(BaseSettings):
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_NAME: str = "spimex_db"
+    DB_USER: str = "postgres"
+    DB_PASS: str = "postgres"
 
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "spimex_db")
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASS = os.getenv("DB_PASS", "postgres")
+    REDIS_URL: RedisDsn = "redis://localhost:6379/0"
 
-DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    APP_HOST: str = "0.0.0.0"
+    APP_PORT: int = 8000
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    @property
+    def database_url(self) -> str:
+        """Собирает асинхронный DSN для PostgreSQL."""
+        return str(
+            PostgresDsn.build(
+                scheme="postgresql+asyncpg",
+                username=self.DB_USER,
+                password=self.DB_PASS,
+                host=self.DB_HOST,
+                port=self.DB_PORT,
+                path=self.DB_NAME,
+            )
+        )
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="allow",          
+    )
+
+
+settings = Settings()
