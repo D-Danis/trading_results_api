@@ -1,7 +1,7 @@
 import datetime
 from typing import TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field, AwareDatetime
 
 
 T = TypeVar("T", bound=BaseModel)
@@ -21,10 +21,15 @@ class TradingResultOut(BaseModel):
     total: int
     count: int
     date: datetime.date
-    created_on: datetime.datetime
-    updated_on: datetime.datetime
+    created_on: AwareDatetime
+    updated_on: AwareDatetime
 
-    model_config = ConfigDict(from_attributes=True)
+    @classmethod
+    def from_orm(cls, orm_obj):
+        return cls.model_validate({
+            column.key: getattr(orm_obj, column.key)
+            for column in orm_obj.__table__.columns
+        })
 
 
 class TradingResultList(BaseModel):
