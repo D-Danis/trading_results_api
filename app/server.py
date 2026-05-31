@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from app.api.v1 import trading
 from app.cache import RedisCache
-from app.config import REDIS_URL
+from app.config import settings
 
 
 logging.basicConfig(
@@ -19,7 +19,7 @@ logger = logging.getLogger("spimex_api.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    cache = RedisCache(REDIS_URL)
+    cache = RedisCache(str(settings.REDIS_URL))
     app.state.cache = cache
     logger.info("Инициализация Redis")
     yield
