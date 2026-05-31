@@ -71,7 +71,7 @@ async def dynamics(
         items, total = await repo.get_dynamics(
             start_date, end_date, filter, limit, offset)
         return TradingResultList(
-            items=[TradingResultOut.model_validate(item) for item in items],
+            items=[TradingResultOut.from_orm(item) for item in items],
             total=total,
         )
     return await get_cached_or_fetch(cache, cache_key, _fetch, TradingResultList)
@@ -97,7 +97,7 @@ async def trading_results(
     async def _fetch():
         items, total = await repo.get_trading_results(filter, limit, offset)
         return TradingResultList(
-            items=[TradingResultOut.model_validate(item) for item in items],
+            items=[TradingResultOut.from_orm(item) for item in items],
             total=total,
         )
     return await get_cached_or_fetch(cache, cache_key, _fetch, TradingResultList)
