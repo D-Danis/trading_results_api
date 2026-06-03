@@ -49,3 +49,9 @@ class TradingFilter(BaseModel):
     oil_id: str | None = Field(None, min_length=1, max_length=4, description="Код нефтепродукта")
     delivery_type_id: str | None = Field(None, min_length=1, max_length=1, description="Тип поставки")
     delivery_basis_id: str | None = Field(None, min_length=1, max_length=3, description="Базис поставки")
+
+
+class Pagination(BaseModel):
+    limit: int = Field(100, ge=1, le=1000, description="Количество записей на странице")
+    offset: int = Field(0, ge=0, description="Смещение для пагинации")
+
