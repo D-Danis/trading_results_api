@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import Depends, Query
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +9,12 @@ from app.cache import RedisCache
 from app.schemas import TradingFilter
 from app.repository.trading import TradingRepository
 
+
+@dataclass
+class AppDependencies:
+    repo: TradingRepository
+    cache: RedisCache
+    
 
 async def trading_filter(
     oil_id: str | None = Query(None, min_length=1, max_length=4, description="Код нефтепродукта"),
@@ -26,3 +34,11 @@ async def get_cache(request: Request) -> RedisCache:
 
 async def get_repo(session: AsyncSession = Depends(get_session)) -> TradingRepository:
     return TradingRepository(session)
+
+    
+async def get_app_dependencies(
+    repo: TradingRepository = Depends(get_repo),
+    cache: RedisCache = Depends(get_cache),
+) -> AppDependencies:
+    return AppDependencies(repo=repo, cache=cache)
+        
