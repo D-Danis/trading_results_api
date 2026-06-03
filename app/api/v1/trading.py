@@ -4,8 +4,7 @@ from typing import Callable, Awaitable
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.cache import RedisCache, get_ttl_to_target
-from app.dependencies import get_cache, trading_filter, get_repo
-from app.repository.trading import TradingRepository
+from app.dependencies import trading_filter, get_app_dependencies, AppDependencies
 from app.schemas import LastTradingDatesList, TradingResultList, TradingResultOut, TradingFilter, T
 
 router = APIRouter()
@@ -32,17 +31,16 @@ async def get_cached_or_fetch(
 @router.get("/last_trading_dates", response_model=LastTradingDatesList)
 async def last_trading_dates(
     limit: int = Query(..., description="Количество последних торговых дней", ge=1, le=365),
-    repo: TradingRepository = Depends(get_repo),
-    cache: RedisCache = Depends(get_cache),
+    deps: AppDependencies = Depends(get_app_dependencies), 
 ) -> LastTradingDatesList:
     """Возвращает список дат последних торговых дней."""
     cache_key = f"last_dates:{limit}"
     
     async def _fetch():
-        dates = await repo.get_last_trading_dates(limit)
+        dates = await deps.repo.get_last_trading_dates(limit)
         return LastTradingDatesList(dates=dates)
 
-    return await get_cached_or_fetch(cache, cache_key, _fetch, LastTradingDatesList)
+    return await get_cached_or_fetch(deps.cache, cache_key, _fetch, LastTradingDatesList)
 
 
 @router.get("/dynamics", response_model=TradingResultList)
@@ -52,8 +50,7 @@ async def dynamics(
     filter: TradingFilter = Depends(trading_filter),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    repo: TradingRepository = Depends(get_repo),
-    cache: RedisCache = Depends(get_cache),
+    deps: AppDependencies = Depends(get_app_dependencies), 
 ) -> TradingResultList:
     """Возвращает торги за заданный период с возможной фильтрацией."""
     if start_date > end_date:
@@ -64,13 +61,13 @@ async def dynamics(
     ) + f":{limit}:{offset}"
 
     async def _fetch():
-        items, total = await repo.get_dynamics(
+        items, total = await deps.repo.get_dynamics(
             start_date, end_date, filter, limit, offset)
         return TradingResultList(
             items=[TradingResultOut.from_orm(item) for item in items],
             total=total,
         )
-    return await get_cached_or_fetch(cache, cache_key, _fetch, TradingResultList)
+    return await get_cached_or_fetch(deps.cache, cache_key, _fetch, TradingResultList)
 
 
 @router.get("/trading_results", response_model=TradingResultList)
@@ -78,8 +75,7 @@ async def trading_results(
     filter: TradingFilter = Depends(trading_filter),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    repo: TradingRepository = Depends(get_repo),
-    cache: RedisCache = Depends(get_cache),
+    deps: AppDependencies = Depends(get_app_dependencies), 
 ):
     """Возвращает последние торги с фильтрацией (все параметры опциональны)."""
     cache_key = "results:" + ":".join(
@@ -87,9 +83,9 @@ async def trading_results(
     ) + f":{limit}:{offset}"
  
     async def _fetch():
-        items, total = await repo.get_trading_results(filter, limit, offset)
+        items, total = await deps.repo.get_trading_results(filter, limit, offset)
         return TradingResultList(
             items=[TradingResultOut.from_orm(item) for item in items],
             total=total,
         )
-    return await get_cached_or_fetch(cache, cache_key, _fetch, TradingResultList)
+    return await get_cached_or_fetch(deps.cache, cache_key, _fetch, TradingResultList)
