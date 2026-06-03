@@ -13,10 +13,16 @@ class RedisCache:
         self.redis = redis.from_url(redis_url, decode_responses=True)
 
     async def get(self, key: str) -> str | None:
-        return await self.redis.get(key)
+        try:
+            return await self.redis.get(key)
+        except Exception:
+            logging.warning("Ошибка чтения из Redis")
 
     async def set(self, key: str, value: str, ex: int | None = None):
-        await self.redis.set(key, value, ex=ex)
+        try:
+            await self.redis.set(key, value, ex=ex)
+        except Exception:
+            logging.warning("Не удалось записать в кэш")
 
     async def close(self):
         await self.redis.aclose()
