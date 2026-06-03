@@ -4,8 +4,8 @@ from typing import Callable, Awaitable
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.cache import RedisCache, get_ttl_to_target
-from app.dependencies import trading_filter, get_app_dependencies, AppDependencies
-from app.schemas import LastTradingDatesList, TradingResultList, TradingResultOut, TradingFilter, T
+from app.dependencies import pagination_params, trading_filter, get_app_dependencies, AppDependencies
+from app.schemas import LastTradingDatesList, Pagination, TradingResultList, TradingResultOut, TradingFilter, T
 
 router = APIRouter()
 
@@ -48,21 +48,21 @@ async def dynamics(
     start_date: date = Query(..., description="Начальная дата (включительно)"),
     end_date: date = Query(..., description="Конечная дата (включительно)"),
     filter: TradingFilter = Depends(trading_filter),
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+    pagination: Pagination = Depends(pagination_params),
     deps: AppDependencies = Depends(get_app_dependencies), 
 ) -> TradingResultList:
     """Возвращает торги за заданный период с возможной фильтрацией."""
     if start_date > end_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="start_date не может быть позже end_date")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+                            detail="start_date не может быть позже end_date")
 
     cache_key = f"dynamics:{start_date}:{end_date}:" + ":".join(
         str(v) for v in filter.model_dump().values()
-    ) + f":{limit}:{offset}"
+    ) +  f":{pagination.limit}:{pagination.offset}"
 
     async def _fetch():
         items, total = await deps.repo.get_dynamics(
-            start_date, end_date, filter, limit, offset)
+            start_date, end_date, filter, pagination.limit, pagination.offset)
         return TradingResultList(
             items=[TradingResultOut.from_orm(item) for item in items],
             total=total,
@@ -73,17 +73,16 @@ async def dynamics(
 @router.get("/trading_results", response_model=TradingResultList)
 async def trading_results(
     filter: TradingFilter = Depends(trading_filter),
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+    pagination: Pagination = Depends(pagination_params),
     deps: AppDependencies = Depends(get_app_dependencies), 
 ):
     """Возвращает последние торги с фильтрацией (все параметры опциональны)."""
     cache_key = "results:" + ":".join(
         str(v) for v in filter.model_dump().values()
-    ) + f":{limit}:{offset}"
+    ) +  f":{pagination.limit}:{pagination.offset}"
  
     async def _fetch():
-        items, total = await deps.repo.get_trading_results(filter, limit, offset)
+        items, total = await deps.repo.get_trading_results(filter, pagination.limit, pagination.offset)
         return TradingResultList(
             items=[TradingResultOut.from_orm(item) for item in items],
             total=total,
