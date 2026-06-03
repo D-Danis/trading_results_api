@@ -20,12 +20,14 @@ async def get_cached_or_fetch(
     cached = await cache.get(cache_key)
     if cached:
         return response_model.model_validate_json(cached)
-
+            
     result = await fetch_func()
+    
     ttl = get_ttl_to_target()
     await cache.set(cache_key, result.model_dump_json(), ex=ttl)
+    
     return result
-
+    
 
 @router.get("/last_trading_dates", response_model=LastTradingDatesList)
 async def last_trading_dates(
@@ -35,9 +37,6 @@ async def last_trading_dates(
 ) -> LastTradingDatesList:
     """Возвращает список дат последних торговых дней."""
     cache_key = f"last_dates:{limit}"
-    cached = await cache.get(cache_key)
-    if cached:
-        return LastTradingDatesList.model_validate_json(cached)
     
     async def _fetch():
         dates = await repo.get_last_trading_dates(limit)
@@ -63,9 +62,6 @@ async def dynamics(
     cache_key = f"dynamics:{start_date}:{end_date}:" + ":".join(
         str(v) for v in filter.model_dump().values()
     ) + f":{limit}:{offset}"
-    cached = await cache.get(cache_key)
-    if cached:
-        return TradingResultList.model_validate_json(cached)
 
     async def _fetch():
         items, total = await repo.get_dynamics(
@@ -89,11 +85,7 @@ async def trading_results(
     cache_key = "results:" + ":".join(
         str(v) for v in filter.model_dump().values()
     ) + f":{limit}:{offset}"
-    
-    cached = await cache.get(cache_key)
-    if cached:
-        return TradingResultList.model_validate_json(cached)
-
+ 
     async def _fetch():
         items, total = await repo.get_trading_results(filter, limit, offset)
         return TradingResultList(
