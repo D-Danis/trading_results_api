@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.cache import RedisCache
-from app.schemas import TradingFilter
+from app.schemas import Pagination, TradingFilter
 from app.repository.trading import TradingRepository
 
 
@@ -27,6 +27,13 @@ async def trading_filter(
         delivery_basis_id=delivery_basis_id,
     )
 
+
+async def pagination_params(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+) -> Pagination:
+    return Pagination(limit=limit, offset=offset)
+ 
  
 async def get_cache(request: Request) -> RedisCache:
     return request.app.state.cache
