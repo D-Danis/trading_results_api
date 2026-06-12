@@ -35,8 +35,7 @@ class TradingRepository:
     ) -> tuple[list[SpimexTradingResult], int]:
         """Возвращает торги за период с учётом фильтров."""
         conditions = [
-            SpimexTradingResult.date >= start_date,
-            SpimexTradingResult.date <= end_date,
+            SpimexTradingResult.date.between(start_date, end_date)
         ]
         if filter:
             if filter.oil_id:
