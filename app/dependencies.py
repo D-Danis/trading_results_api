@@ -10,12 +10,6 @@ from app.schemas import Pagination, TradingFilter
 from app.repository.trading import TradingRepository
 
 
-@dataclass
-class AppDependencies:
-    repo: TradingRepository
-    cache: RedisCache
-    
-
 async def trading_filter(
     oil_id: str | None = Query(None, min_length=1, max_length=4, description="Код нефтепродукта"),
     delivery_type_id: str | None = Query(None, min_length=1, max_length=1, description="Тип поставки"),
@@ -41,11 +35,3 @@ async def get_cache(request: Request) -> RedisCache:
 
 async def get_repo(session: AsyncSession = Depends(get_session)) -> TradingRepository:
     return TradingRepository(session)
-
-    
-async def get_app_dependencies(
-    repo: TradingRepository = Depends(get_repo),
-    cache: RedisCache = Depends(get_cache),
-) -> AppDependencies:
-    return AppDependencies(repo=repo, cache=cache)
-        
