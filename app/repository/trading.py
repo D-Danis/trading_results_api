@@ -24,52 +24,13 @@ class TradingRepository:
         result = await self.session.execute(stmt)
         return [row[0] for row in result.all()]
 
-    
-    async def get_dynamics(
-        self,
-        start_date: date,
-        end_date: date,
-        filter: TradingFilter | None = None,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> tuple[list[SpimexTradingResult], int]:
-        """Возвращает торги за период с учётом фильтров."""
-        conditions = [
-            SpimexTradingResult.date.between(start_date, end_date)
-        ]
-        if filter:
-            if filter.oil_id:
-                conditions.append(SpimexTradingResult.oil_id == filter.oil_id)
-            if filter.delivery_type_id:
-                conditions.append(SpimexTradingResult.delivery_type_id == filter.delivery_type_id)
-            if filter.delivery_basis_id:
-                conditions.append(SpimexTradingResult.delivery_basis_id == filter.delivery_basis_id)
-
-        where_clause = and_(*conditions)
-
-        count_stmt = select(func.count()).where(where_clause)
-        total = (await self.session.execute(count_stmt)).scalar_one()
-
-        stmt = (
-            select(SpimexTradingResult)
-            .where(where_clause)
-            .order_by(SpimexTradingResult.date.desc())
-            .limit(limit)
-            .offset(offset)
-        )
-        result = await self.session.execute(stmt)
-        items = result.scalars().all()
-        return items, total
-
-    
-    async def get_trading_results(
-        self,
-        filter: TradingFilter | None = None,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> tuple[list[SpimexTradingResult], int]:
-        """Возвращает последние торги с фильтрацией (все параметры опциональны)."""
-        conditions = []
+    async def _filtered_request(
+        self, 
+        filter: TradingFilter, 
+        limit: int, 
+        offset: int, 
+        conditions: list
+        ) -> tuple[list[SpimexTradingResult], int]:
         if filter:
             if filter.oil_id:
                 conditions.append(SpimexTradingResult.oil_id == filter.oil_id)
@@ -96,3 +57,28 @@ class TradingRepository:
         result = await self.session.execute(stmt)
         items = result.scalars().all()
         return items, total
+    
+    async def get_dynamics(
+        self,
+        start_date: date,
+        end_date: date,
+        filter: TradingFilter | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> tuple[list[SpimexTradingResult], int]:
+        """Возвращает торги за период с учётом фильтров."""
+        conditions = [
+            SpimexTradingResult.date.between(start_date, end_date)
+        ]
+        return await self._filtered_request(filter, limit, offset, conditions)
+    
+    async def get_trading_results(
+        self,
+        filter: TradingFilter | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> tuple[list[SpimexTradingResult], int]:
+        """Возвращает последние торги с фильтрацией (все параметры опциональны)."""
+        conditions = []
+        return await self._filtered_request(filter, limit, offset, conditions)
+
